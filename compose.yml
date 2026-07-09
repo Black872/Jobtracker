@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: jobtracker_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - ${POSTGRES_PORT}
+
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+#      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT}:8000"
+    environment:
+      - JOBTRACKER_DATABASE_URL=${JOBTRACKER_DATABASE_URL}
+      - JOBTRACKER_LOG_LEVE=${JOBTRACKER_LOG_LEVEL}
+      - JOBTRACKER_TEST_DATABASE_URL=${JOBTRACKER_TEST_DATABASE_URL}
+
+volumes:
+  pgdata:
